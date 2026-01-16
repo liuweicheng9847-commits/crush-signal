@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>心动信号捕获器：TA对你心动了吗？</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ============ V6.0 视觉系统：香芋紫 · 心动信号版 ============ */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        :root {
+            --primary: #8483f0; /* 香芋紫 */
+            --primary-dark: #6c5ce7;
+            --bg: #f4f5f7;
+            --text-main: #2d3436;
+            --text-sub: #636e72;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            margin: 0; padding: 0; color: var(--text-main);
+            min-height: 100vh;
+            display: flex; justify-content: center;
+        }
+
+        .container {
+            width: 100%; max-width: 420px; 
+            background: #fff; min-height: 100vh;
+            display: flex; flex-direction: column;
+            box-shadow: 0 0 20px rgba(0,0,0,0.03);
+            position: relative;
+        }
+
+        .hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 通用按钮 */
+        .btn-main {
+            background: var(--primary); color: white; border: none;
+            width: 100%; padding: 16px; border-radius: 50px;
+            font-size: 16px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 8px 20px rgba(132, 131, 240, 0.3);
+            transition: transform 0.1s;
+        }
+        .btn-main:active { transform: scale(0.96); }
+
+        /* === 1. 首页 === */
+        #page-landing { padding: 60px 30px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .hero-icon { font-size: 70px; margin-bottom: 20px; animation: float 3s infinite ease-in-out; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        
+        .hero-title { font-size: 26px; font-weight: 900; color: #2d3436; margin-bottom: 10px; line-height: 1.3; }
+        .hero-sub { font-size: 14px; color: var(--text-sub); margin-bottom: 40px; line-height: 1.6; }
+        
+        .code-input {
+            background: #f1f2f6; border: 2px solid transparent;
+            padding: 15px; border-radius: 16px; width: 100%;
+            text-align: center; font-size: 18px; outline: none; letter-spacing: 2px;
+            margin-bottom: 20px; font-weight: bold;
+        }
+        .code-input:focus { border-color: var(--primary); background: #fff; }
+
+        /* === 2. 选择页 (性别/状态) === */
+        .select-page { padding: 40px 25px; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .select-header { font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 30px; }
+        
+        .select-card {
+            background: #fff; border: 2px solid #f1f2f6; padding: 25px;
+            border-radius: 20px; margin-bottom: 15px; cursor: pointer;
+            display: flex; align-items: center; justify-content: space-between;
+            transition: all 0.2s;
+        }
+        .select-card:active { border-color: var(--primary); background: #f8f7fc; }
+        .select-icon { font-size: 34px; margin-right: 15px; }
+        .select-info { flex: 1; text-align: left; }
+        .select-label { font-size: 16px; font-weight: bold; color: #2d3436; }
+        .select-desc { font-size: 12px; color: #b2bec3; margin-top: 4px; }
+
+        /* === 3. 答题页 === */
+        #page-quiz { display: flex; flex-direction: column; height: 100vh; }
+        .quiz-header { padding: 20px 25px 10px; background: #fff; }
+        .progress-track { height: 6px; background: #f1f2f6; border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
+        .quiz-meta { display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: #b2bec3; font-weight: bold; }
+        
+        .quiz-body { flex: 1; padding: 20px 25px; overflow-y: auto; }
+        .question-text { font-size: 19px; font-weight: 800; color: #2d3436; line-height: 1.5; margin-bottom: 25px; }
+        
+        .option-btn {
+            background: #fff; border: 1.5px solid #e0e0e0; padding: 16px 20px;
+            border-radius: 16px; margin-bottom: 12px; cursor: pointer;
+            display: flex; align-items: center; transition: all 0.15s;
+        }
+        .option-btn:active { border-color: var(--primary); background: #f0efff; transform: scale(0.99); }
+        .opt-idx { 
+            width: 24px; height: 24px; background: #f1f2f6; color: var(--text-sub);
+            border-radius: 50%; font-size: 12px; font-weight: bold;
+            display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;
+        }
+        .option-btn:active .opt-idx { background: var(--primary); color: white; }
+        .opt-content { font-size: 15px; color: #2d3436; font-weight: 500; }
+
+        /* === 4. 深度分析页特效 === */
+        #page-analyzing {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; background: #f4f5f7; padding: 30px;
+        }
+        .scan-wrapper { position: relative; width: 180px; height: 180px; margin-bottom: 40px; }
+        .pulse-circle {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            border: 2px solid var(--primary); border-radius: 50%; opacity: 0.6;
+            animation: pulse 2s infinite;
+        }
+        .pulse-circle::after {
+            content: ''; position: absolute;
+            top: -10px; left: -10px; right: -10px; bottom: -10px;
+            border: 1px solid var(--primary); border-radius: 50%;
+            opacity: 0.3; animation: pulse 2s infinite 0.5s;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .scan-grid {
+            position: absolute; top: 15px; left: 15px; right: 15px; bottom: 15px;
+            background: linear-gradient(rgba(132, 131, 240, 0.1) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(132, 131, 240, 0.1) 1px, transparent 1px);
+            background-size: 10px 10px; border-radius: 50%;
+            border: 1px dashed var(--primary); overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(132, 131, 240, 0.2);
+        }
+        .scan-line {
+            width: 100%; height: 4px; background: #00b894;
+            box-shadow: 0 0 10px #00b894; position: absolute; top: 0;
+            animation: scanning 1.5s infinite linear;
+        }
+        @keyframes scanning {
+            0% { top: -10%; opacity: 0; } 100% { top: 110%; opacity: 0; }
+        }
+        .status-box { text-align: left; width: 100%; max-width: 300px; }
+        .status-title { font-size: 18px; font-weight: 900; color: #2d3436; margin-bottom: 15px; text-align: center; }
+        .terminal-logs {
+            font-family: "Courier New", Courier, monospace; font-size: 12px; color: var(--text-sub);
+            line-height: 1.8; height: 80px; overflow: hidden; position: relative;
+        }
+        .log-item { display: block; opacity: 0; transform: translateY(10px); transition: all 0.3s; }
+        .log-item.active { opacity: 1; transform: translateY(0); color: var(--primary-dark); font-weight: bold; }
+        .log-item.old { opacity: 0.5; transform: translateY(-5px); }
+        .analyzing-bar-bg { width: 100%; height: 4px; background: #e0e0e0; border-radius: 2px; margin-top: 20px; overflow: hidden; }
+        .analyzing-bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.2s linear; }
+
+        /* === 5. 结果页 === */
+        #page-result { 
+            background: var(--primary); padding: 20px; min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .result-poster {
+            background: #fff; width: 100%; border-radius: 24px;
+            padding: 30px 25px; text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2); position: relative;
+        }
+        .score-wrap { width: 110px; height: 110px; margin: 0 auto 20px; position: relative; display: flex; align-items: center; justify-content: center; }
+        .score-val { font-size: 36px; font-weight: 900; color: var(--primary); z-index: 2; }
+        .res-title { font-size: 22px; font-weight: 900; color: #2d3436; margin-bottom: 8px; }
+        .res-tag { 
+            display: inline-block; background: #f0efff; color: var(--primary); 
+            padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; margin-bottom: 25px;
+        }
+        .res-box {
+            background: #f8f9fa; border-radius: 12px; padding: 15px; text-align: left;
+            margin-bottom: 20px; border-left: 4px solid var(--primary);
+        }
+        .res-label { font-size: 12px; color: #b2bec3; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
+        .res-text { font-size: 14px; color: #2d3436; line-height: 1.6; text-align: justify; }
+        
+        .btn-save {
+            background: #2d3436; color: white; border: none;
+            width: 100%; padding: 14px; border-radius: 12px;
+            font-size: 14px; font-weight: bold; margin-top: 10px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div id="page-landing" class="fade-in">
+        <div class="hero-icon">💓</div>
+        <h1 class="hero-title">心动信号捕获器</h1>
+        <p class="hero-sub">捕捉暧昧期微表情与下意识反应<br>25道题 · 看看TA是否也在偷偷喜欢你</p>
+        
+        <input type="text" id="access-code" class="code-input" placeholder="请输入解锁码" autocomplete="off" autocorrect="off" autocapitalize="characters">
+        <button class="btn-main" onclick="goToGender()">立即检测</button>
+        <p style="font-size:12px; color:#b2bec3; margin-top:20px;">* 已有 32,401 人参与测试</p>
+    </div>
+
+    <div id="page-gender" class="select-page hidden fade-in">
+        <div class="select-header">你的心动对象是？</div>
+        
+        <div class="select-card" onclick="selectGender('Him')">
+            <div class="select-icon">🦊</div>
+            <div class="select-info">
+                <div class="select-label">他 (男生)</div>
+                <div class="select-desc">解读他的潜意识心动信号</div>
+            </div>
+        </div>
+
+        <div class="select-card" onclick="selectGender('Her')">
+            <div class="select-icon">🐰</div>
+            <div class="select-info">
+                <div class="select-label">她 (女生)</div>
+                <div class="select-desc">读懂她藏不住的小心思</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-status" class="select-page hidden fade-in">
+        <div class="select-header">你们现在的状态是？</div>
+        <div class="select-card" onclick="selectStatus('Crush')">
+            <div class="select-icon">🍭</div>
+            <div class="select-info">
+                <div class="select-label">单向暗恋 / 上头中</div>
+                <div class="select-desc">"是我自作多情，还是双向奔赴？"</div>
+            </div>
+        </div>
+        <div class="select-card" onclick="selectStatus('Game')">
+            <div class="select-icon">🔮</div>
+            <div class="select-info">
+                <div class="select-label">极限拉扯 / 忽冷忽热</div>
+                <div class="select-desc">"他是在养鱼，还是真的忙？"</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-quiz" class="hidden">
+        <div class="quiz-header">
+            <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+            <div class="quiz-meta">
+                <span>潜意识解码中...</span>
+                <span><span id="q-curr">1</span> / <span id="q-total">25</span></span>
+            </div>
+        </div>
+        <div class="quiz-body fade-in" id="quiz-box">
+            <div class="question-text" id="q-text">题目加载中...</div>
+            <div id="options-box"></div>
+        </div>
+    </div>
+
+    <div id="page-analyzing" class="hidden">
+        <div class="scan-wrapper">
+            <div class="pulse-circle"></div>
+            <div class="scan-grid">
+                <div style="font-size:50px; text-align:center; line-height:150px; opacity:0.2;">🧠</div>
+                <div class="scan-line"></div>
+            </div>
+        </div>
+
+        <div class="status-box">
+            <div class="status-title" id="analyze-main-text">系统接入中...</div>
+            <div class="terminal-logs" id="log-container"></div>
+            <div class="analyzing-bar-bg">
+                <div class="analyzing-bar-fill" id="analyze-progress"></div>
+            </div>
+        </div>
+        
+        <p style="font-size:12px; color:#b2bec3; margin-top:30px; letter-spacing:1px;">
+            CONNECTING TO SUBCONSCIOUS...
+        </p>
+    </div>
+
+    <div id="page-result" class="hidden fade-in">
+        <div class="result-poster">
+            <div style="font-size:10px; color:#b2bec3; margin-bottom:15px; letter-spacing:2px;">HEART SIGNAL REPORT</div>
+            
+            <div class="score-wrap">
+                <canvas id="scoreChart" width="110" height="110" style="position:absolute; top:0; left:0;"></canvas>
+                <div class="score-val" id="final-score">--</div>
+            </div>
+
+            <div class="res-title" id="res-title">分析中...</div>
+            <div class="res-tag" id="res-tag">...</div>
+
+            <div class="res-box">
+                <div class="res-label">🧠 潜意识解码</div>
+                <div class="res-text" id="res-analysis"></div>
+            </div>
+
+            <div class="res-box" style="border-left-color: #fab1a0;">
+                <div class="res-label">💡 破局建议</div>
+                <div class="res-text" id="res-advice"></div>
+            </div>
+
+            <button class="btn-save" onclick="alert('请直接截图保存本页哦 📸')">
+                <span>📸</span> 截图保存诊断书
+            </button>
+            <div style="margin-top:15px; font-size:13px; color:#b2bec3; cursor:pointer;" onclick="location.reload()">↺ 返回首页重测</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // ================== 秘钥库 ==================
+    var VALID_CODES = [
+        "HKUYLT", "AJSQLA", "AX4EFM", "PSB5CB", "6SLNK3", "Z422XU", "CPFTCN", "GY8YCB", "BJQP2Z", "K9N5R6", 
+        "4B3GR7", "H4SX8X", "84L2EY", "F5254D", "L48UDF", "FXSVQP", "LY96UL", "FG6F6M", "8E4PFE", "4LZW86", 
+        "ADMIN", "LOVE" 
+    ];
+
+    // ================== 题库 (保持原样) ==================
+    var questions = [
+        { title: "1. 一群人一起笑的时候，TA的第一反应是？", options: [{ text: "下意识看向你（视线寻找）", score: 10 }, { text: "视线扫过大家，但在你身上停留较久", score: 8 }, { text: "偶尔看你一眼", score: 5 }, { text: "看别人或低头", score: 0 }] },
+        { title: "2. 如果你们不经意对视，TA的反应？", options: [{ text: "瞳孔放大，慌乱躲闪（紧张）", score: 8 }, { text: "眼神锁定，微笑着看你（自信/吃定你）", score: 10 }, { text: "自然移开，像看路人一样", score: 0 }, { text: "礼貌地点头示意", score: 2 }] },
+        { title: "3. 走路时，TA通常走在哪里？", options: [{ text: "总是走在外侧（靠近车流的一侧）", score: 10 }, { text: "和你并排，偶尔碰到肩膀", score: 8 }, { text: "走得很快，经常把你甩在后面", score: 0 }, { text: "看情况，没有固定位置", score: 3 }] },
+        { title: "4. 坐在一起时，TA的膝盖和脚尖朝向？", options: [{ text: "完全朝向你的方向（开放姿态）", score: 10 }, { text: "上半身转向你，但脚尖朝向出口", score: 4 }, { text: "二郎腿翘向远离你的方向（防御姿态）", score: 0 }, { text: "中规中矩，没有明显倾向", score: 5 }] },
+        { title: "5. 当你拿起杯子喝水时，TA会？", options: [{ text: "几秒钟内也下意识拿起杯子喝水（镜像效应）", score: 10 }, { text: "看着你喝水", score: 6 }, { text: "完全没注意", score: 0 }, { text: "继续玩手机", score: 0 }] },
+        { title: "6. 当你说“我生病了/心情不好”时...", options: [{ text: "立刻问你在哪/要不要送药", score: 10 }, { text: "一直陪聊，时不时确认你好点没", score: 8 }, { text: "发个“摸摸头”表情包完事", score: 2 }, { text: "口头安慰几句，然后讲自己的事", score: 0 }] },
+        { title: "7. 你们聊天的结尾通常是？", options: [{ text: "TA总是开启新话题，不想结束", score: 10 }, { text: "TA会多说一句废话，试图拖延", score: 8 }, { text: "互道晚安，很有仪式感", score: 5 }, { text: "你想结束，TA就不回了", score: 0 }] },
+        { title: "8. 看到你的朋友圈新动态，TA会？", options: [{ text: "秒赞，或私聊评论相关内容", score: 10 }, { text: "基本都会赞，评论也很用心", score: 8 }, { text: "偶尔点赞", score: 4 }, { text: "很久才赞，或者装没看见", score: 0 }] },
+        { title: "9. 一起出去玩买单的情况？", options: [{ text: "精心挑选餐厅，主动抢着买单", score: 10 }, { text: "这次TA付，下次你付（轮流）", score: 8 }, { text: "严格AA", score: 2 }, { text: "等着你掏手机，实在不行再付", score: 0 }] },
+        { title: "10. 如果你随口提议想去某个地方？", options: [{ text: "记得很清楚，并规划好带你去", score: 10 }, { text: "记在备忘录里，之后提起", score: 8 }, { text: "说“下次有机会去”", score: 2 }, { text: "听过就忘", score: 0 }] },
+        { title: "11. TA会模仿你的表情包或口头禅吗？", options: [{ text: "越来越多，聊天风格逐渐同化", score: 10 }, { text: "会偷你的图，用你常用的词", score: 8 }, { text: "偶尔用一两个", score: 5 }, { text: "从不，甚至觉得无聊", score: 0 }] },
+        { title: "12. 当你提到其他的异性朋友时？", options: [{ text: "突然沉默，或者表现出吃醋/阴阳怪气", score: 10 }, { text: "开始打听那个人是谁", score: 8 }, { text: "跟着一起八卦", score: 2 }, { text: "完全不在意", score: 0 }] },
+        { title: "13. 晚上发消息给TA，通常多久回？", options: [{ text: "只要没睡就会秒回", score: 10 }, { text: "如果醒着会回，睡了第二天早起回", score: 8 }, { text: "第二天正常回复，不冷不热", score: 2 }, { text: "很久才回，或者经常不回", score: 0 }] },
+        { title: "14. 在TA的朋友面前，TA介绍你时？", options: [{ text: "有些许紧张，但郑重其事地介绍", score: 10 }, { text: "热情大方地介绍名字", score: 8 }, { text: "含糊带过，或者假装不熟", score: 0 }, { text: "没机会见到TA的朋友", score: 0 }] },
+        { title: "15. 回复消息的字数和语气？", options: [{ text: "小作文，生怕你误会，解释得很详细", score: 10 }, { text: "会主动延伸话题，不让话掉地上", score: 8 }, { text: "简短回复，不带语气词", score: 2 }, { text: "惜字如金，“嗯”“哦”", score: 0 }] },
+        { title: "16. 你们见面时的打扮？", options: [{ text: "明显精心打扮过（洗头/喷香水/搭配衣服）", score: 10 }, { text: "比平时稍微整洁一点", score: 6 }, { text: "和平时一样，很随意", score: 2 }, { text: "不修边幅，甚至有点邋遢", score: 0 }] },
+        { title: "17. 如果你们的约会被迫取消？", options: [{ text: "表现出明显失望，并立刻敲定下个时间", score: 10 }, { text: "有点遗憾，问你什么时候再有空", score: 8 }, { text: "“没事，下次再约”", score: 2 }, { text: "“那刚好，我在家休息”", score: 0 }] },
+        { title: "18. TA会分享无聊的日常琐事吗？", options: [{ text: "经常，看到一只猫都会拍给你", score: 10 }, { text: "偶尔会分享", score: 6 }, { text: "只有这种事才找你", score: 8 }, { text: "基本不分享，只聊正事", score: 0 }] },
+        { title: "19. 身体接触的反应（Personal Space）？", options: [{ text: "不排斥，甚至会借机更靠近", score: 10 }, { text: "有点僵硬，但没有躲开", score: 6 }, { text: "下意识后退或避开", score: 0 }, { text: "保持礼貌的社交距离", score: 2 }] },
+        { title: "20. 当你如果不回消息，TA会？", options: [{ text: "过一会再发一条，或者打电话", score: 10 }, { text: "虽然不发，但能感觉到TA在等你", score: 6 }, { text: "你不回，TA也绝对不回（博弈）", score: 2 }, { text: "根本没发现你没回", score: 0 }] },
+        { title: "21. 借东西给TA（如外套/书），归还时？", options: [{ text: "洗得很干净，甚至夹了小礼物/纸条", score: 10 }, { text: "亲自送还，借机聊几句", score: 8 }, { text: "叫个跑腿或者放前台", score: 0 }, { text: "忘了还，还得你催", score: 0 }] },
+        { title: "22. 谈论到感情观或择偶标准时？", options: [{ text: "描述的标准跟你很像", score: 10 }, { text: "问你喜欢什么样的", score: 8 }, { text: "说自己不想谈恋爱", score: 0 }, { text: "回避这个话题", score: 2 }] },
+        { title: "23. 你们有过深夜长谈吗？", options: [{ text: "有，聊过很多童年、梦想等深度话题", score: 10 }, { text: "偶尔聊得比较晚，但都是闲聊", score: 6 }, { text: "没有，到点就睡", score: 0 }, { text: "TA只有深夜才找你（警惕）", score: 2 }] },
+        { title: "24. TA会记得你的生理期/忌口吗？", options: [{ text: "记得很清楚，点菜时会避开", score: 10 }, { text: "提醒过一次就记住了", score: 8 }, { text: "总是记不住", score: 0 }, { text: "完全不在意", score: 0 }] },
+        { title: "25. 最后，相信你的直觉：", options: [{ text: "虽然没挑明，但我确定TA眼里有我", score: 10 }, { text: "能感觉到浅浅喜欢，但还没到那一步", score: 6 }, { text: "我不确定，患得患失", score: 2 }, { text: "感觉不到喜欢，甚至觉得烦", score: 0 }] }
+    ];
+
+    // ================= 核心逻辑 =================
+    var totalScore = 0;
+    var userGender = "";
+    var userStatus = "";
+    var currentStep = 0;
+
+    document.getElementById('q-total').innerText = questions.length;
+
+    function goToGender() {
+        var codeInput = document.getElementById('access-code');
+        var code = codeInput.value.trim().toUpperCase(); 
+        if(VALID_CODES.indexOf(code) !== -1) {
+            document.getElementById('page-landing').classList.add('hidden');
+            document.getElementById('page-gender').classList.remove('hidden');
+        } else {
+            alert("解锁码错误，请检查输入");
+            codeInput.value = '';
+        }
+    }
+
+    function selectGender(g) {
+        userGender = g;
+        document.getElementById('page-gender').classList.add('hidden');
+        document.getElementById('page-status').classList.remove('hidden');
+    }
+
+    function selectStatus(s) {
+        userStatus = s;
+        document.getElementById('page-status').classList.add('hidden');
+        document.getElementById('page-quiz').classList.remove('hidden');
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        if(currentStep >= questions.length) {
+            finishTest();
+            return;
+        }
+        var q = questions[currentStep];
+        
+        var percent = ((currentStep+1)/questions.length)*100 + "%";
+        document.getElementById('progress').style.width = percent;
+        document.getElementById('q-curr').innerText = currentStep + 1;
+        document.getElementById('q-text').innerText = q.title;
+        
+        var labels = ["A", "B", "C", "D"];
+        var html = '';
+        for(var i=0; i<q.options.length; i++) {
+            var opt = q.options[i];
+            html += '<div class="option-btn" onclick="nextQ('+opt.score+')">' +
+                    '<div class="opt-idx">'+labels[i]+'</div>' +
+                    '<div class="opt-content">'+opt.text+'</div>' +
+                    '</div>';
+        }
+        document.getElementById('options-box').innerHTML = html;
+        
+        var box = document.getElementById('quiz-box');
+        box.classList.remove('fade-in');
+        void box.offsetWidth; 
+        box.classList.add('fade-in');
+    }
+
+    function nextQ(score) {
+        totalScore += score;
+        currentStep++;
+        setTimeout(renderQuestion, 200);
+    }
+
+    // ================== 分析过程动画逻辑 ==================
+    function finishTest() {
+        document.getElementById('page-quiz').classList.add('hidden');
+        document.getElementById('page-analyzing').classList.remove('hidden');
+        runAnalysisSequence();
+    }
+
+    function runAnalysisSequence() {
+        var logs = document.getElementById('log-container');
+        var mainText = document.getElementById('analyze-main-text');
+        var progressBar = document.getElementById('analyze-progress');
+        
+        var steps = [
+            { text: "正在建立心动连接...", sub: "> CONNECTING TO HEART SIGNAL..." },
+            { text: "提取第 1-10 题行为模式...", sub: "> EXTRACTING BEHAVIOR DATA..." },
+            { text: "正在解析微表情信号...", sub: "> ANALYZING MICRO-EXPRESSIONS..." },
+            { text: "比对恋爱心理学模型...", sub: "> MATCHING PSYCHOLOGY DB..." }, // 改得稍微专业又不死板
+            { text: "排除干扰项，计算真实意图...", sub: "> CALCULATING PROBABILITY..." },
+            { text: "分析完成，生成诊断书...", sub: "> REPORT GENERATED." }
+        ];
+
+        var duration = 4500; 
+        var stepTime = duration / steps.length;
+        
+        progressBar.style.transition = `width ${duration}ms linear`;
+        setTimeout(() => { progressBar.style.width = '100%'; }, 50);
+
+        var currentStep = 0;
+        var interval = setInterval(function() {
+            if(currentStep >= steps.length) {
+                clearInterval(interval);
+                setTimeout(showResult, 500); 
+                return;
+            }
+
+            mainText.innerText = steps[currentStep].text;
+
+            var logHtml = `<div class="log-item active">${steps[currentStep].sub}</div>`;
+            var oldLogs = logs.getElementsByClassName('log-item');
+            if(oldLogs.length > 0) {
+                oldLogs[oldLogs.length-1].classList.remove('active');
+                oldLogs[oldLogs.length-1].classList.add('old');
+            }
+            logs.insertAdjacentHTML('beforeend', logHtml);
+            logs.scrollTop = logs.scrollHeight;
+
+            currentStep++;
+        }, stepTime);
+    }
+
+    function showResult() {
+        document.getElementById('page-analyzing').classList.add('hidden');
+        document.getElementById('page-result').classList.remove('hidden');
+
+        var finalPercent = Math.round((totalScore / 250) * 100);
+        if(finalPercent > 100) finalPercent = 100;
+        
+        document.getElementById('final-score').innerText = finalPercent;
+
+        var ctx = document.getElementById('scoreChart').getContext('2d');
+        if(window.myChart instanceof Chart) window.myChart.destroy();
+
+        window.myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [finalPercent, 100-finalPercent],
+                    backgroundColor: ['#8483f0', '#e0e0e0'],
+                    borderWidth: 0,
+                    hoverBackgroundColor: ['#8483f0', '#e0e0e0']
+                }]
+            },
+            options: { 
+                cutout: '85%', 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                events: [],
+                plugins: {
+                    tooltip: { enabled: false },
+                    legend: { display: false }
+                },
+                animation: { animateScale: true, animateRotate: true }
+            }
+        });
+
+        // 结果逻辑
+        var title = "";
+        var tag = "";
+        var analysis = "";
+        var advice = "";
+
+        if(finalPercent >= 90) {
+            title = "绝对占有 (Obsessed)";
+            tag = "🔒 猎人已就位";
+            analysis = "别怀疑了！系统监测到第2、5、19题的行为模式匹配度高达98%。TA的每一个“漫不经心”其实都是精心设计。眼神的锁定和主动的靠近（身体语言），都是无法掩饰的证据。TA对你的占有欲已经刻在潜意识里了。";
+            advice = "不用再试探了，可以直接给一点明显的信号（比如肢体接触），TA会立刻扑上来表白。现在是你掌握主动权的最佳时机。";
+        } else if(finalPercent >= 70) {
+            title = "双向锁定 (Locked)";
+            tag = "💘 只差一层窗户纸";
+            analysis = "恭喜，微表情分析显示TA在提到你时瞳孔有明显的放大反应。TA的犹豫和试探，不是因为不喜欢，而是因为太在乎，怕说错话破坏关系。TA已经在小心翼翼地向你靠近了。";
+            advice = "给TA一颗定心丸。找个机会单独相处，稍微夸夸TA，或者制造一点暧昧的氛围，这层窗户纸一捅就破。";
+        } else if(finalPercent >= 45) {
+            title = "权衡利弊 (Game)";
+            tag = "⚖️ 玩家心态";
+            analysis = "TA对你有好感，但这好感还不足以让TA冲动。系统判断TA属于“低投入高回报”型人格，正在权衡利弊，或者同时在对比其他人。现在的TA就像一个冷静的棋手，进退自如。";
+            advice = "千万不要急着表白！现在表白你就输了。你需要“后撤”，专注自己的生活，展现高价值，让TA产生危机感，TA才会主动出击。";
+        } else {
+            title = "深海鱼苗 (Fish)";
+            tag = "🐟 礼貌性社交";
+            analysis = "很扎心，但行为数据显示，你大概率只是TA鱼塘里的一条鱼。TA对你的所有回应，符合“礼貌性社交”特征。TA的潜意识里，并没有把你当作猎物，也没有那种“非你不可”的冲动。";
+            advice = "及时止损是最高级的自律。停止主动找TA，把注意力放回自己身上。如果TA不找你，那就下一个更乖。";
+        }
+
+        document.getElementById('res-title').innerText = title;
+        document.getElementById('res-tag').innerText = tag;
+        document.getElementById('res-analysis').innerText = analysis;
+        document.getElementById('res-advice').innerText = advice;
+    }
+</script>
+</body>
+</html>
