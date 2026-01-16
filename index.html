@@ -6,7 +6,7 @@
     <title>心动信号捕获器：TA对你心动了吗？</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* ============ V6.0 视觉系统：香芋紫 · 心动信号版 ============ */
+        /* ============ V6.1 视觉系统：黄金比例布局版 ============ */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
         :root {
@@ -47,8 +47,15 @@
         }
         .btn-main:active { transform: scale(0.96); }
 
-        /* === 1. 首页 === */
-        #page-landing { padding: 60px 30px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        /* === 1. 首页 (已优化：内容上移) === */
+        #page-landing { 
+            padding: 120px 30px 60px; /* 顶部留出 120px，不再居中 */
+            text-align: center; 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: flex-start; /* 从顶部开始排列 */
+        }
         .hero-icon { font-size: 70px; margin-bottom: 20px; animation: float 3s infinite ease-in-out; }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         
@@ -63,8 +70,14 @@
         }
         .code-input:focus { border-color: var(--primary); background: #fff; }
 
-        /* === 2. 选择页 (性别/状态) === */
-        .select-page { padding: 40px 25px; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        /* === 2. 选择页 (已优化：内容上移) === */
+        .select-page { 
+            padding: 100px 25px 40px; /* 顶部留出 100px，保持视觉稳定 */
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: flex-start; /* 从顶部开始排列 */
+        }
         .select-header { font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 30px; }
         
         .select-card {
@@ -426,7 +439,7 @@
             { text: "正在建立心动连接...", sub: "> CONNECTING TO HEART SIGNAL..." },
             { text: "提取第 1-10 题行为模式...", sub: "> EXTRACTING BEHAVIOR DATA..." },
             { text: "正在解析微表情信号...", sub: "> ANALYZING MICRO-EXPRESSIONS..." },
-            { text: "比对恋爱心理学模型...", sub: "> MATCHING PSYCHOLOGY DB..." }, // 改得稍微专业又不死板
+            { text: "比对恋爱心理学模型...", sub: "> MATCHING PSYCHOLOGY DB..." },
             { text: "排除干扰项，计算真实意图...", sub: "> CALCULATING PROBABILITY..." },
             { text: "分析完成，生成诊断书...", sub: "> REPORT GENERATED." }
         ];
